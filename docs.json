@@ -58,6 +58,7 @@
               "api/auth/confirm-account",
               "api/auth/login",
               "api/auth/forgot-password",
+              "api/auth/validate-token",
               "api/auth/reset-password",
               "api/auth/get-user",
               "api/auth/check-password",

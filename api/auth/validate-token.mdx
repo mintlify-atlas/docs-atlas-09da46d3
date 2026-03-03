@@ -1,0 +1,101 @@
+---
+title: Validate token
+description: Validate a password reset token before allowing password change
+---
+
+Validates a password reset token to ensure it exists and is valid before proceeding to the password reset step.
+
+## Endpoint
+
+```
+POST /api/auth/validate-token
+```
+
+## Authentication
+
+No authentication required.
+
+## Request body
+
+<ParamField path="token" type="string" required>
+  The 6-character password reset token sent to the user's email
+  
+  - Must be exactly 6 characters
+  - Cannot be empty
+</ParamField>
+
+## Request example
+
+```json
+{
+  "token": "ABC123"
+}
+```
+
+## Response
+
+### Success response
+
+**Status**: `200 OK`
+
+<ResponseField name="message" type="string">
+  Confirmation message indicating the token is valid
+</ResponseField>
+
+```json
+"Token valid, assign new password"
+```
+
+### Error responses
+
+**Status**: `400 Bad Request`
+
+Returned when validation fails:
+
+```json
+{
+  "errors": [
+    {
+      "msg": "Token not valid",
+      "path": "token"
+    }
+  ]
+}
+```
+
+**Status**: `404 Not Found`
+
+Returned when the token doesn't exist in the database:
+
+```json
+{
+  "error": "Token not valid"
+}
+```
+
+## Usage flow
+
+This endpoint is typically used as step 2 in the password reset process:
+
+1. User requests password reset via `/api/auth/forgot-password`
+2. **User validates the token received via email** (this endpoint)
+3. User submits new password via `/api/auth/reset-password/:token`
+
+## Example request
+
+```bash cURL
+curl -X POST https://api.example.com/api/auth/validate-token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "ABC123"
+  }'
+```
+
+<Note>
+This endpoint is subject to rate limiting (5 requests per minute per IP).
+</Note>
+
+## Related endpoints
+
+- [Forgot password](/api/auth/forgot-password) - Request a password reset token
+- [Reset password](/api/auth/reset-password) - Complete the password reset
