@@ -1,0 +1,96 @@
+{
+  "projectType": "api-service",
+  "projectName": "Cognit Backend",
+  "projectDescription": "REST API backend for the Cognit educational game platform with authentication and game management",
+  "theme": "palm",
+  "primaryColor": "#10b981",
+  "lightColor": "#34d399",
+  "darkColor": "#059669",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/database",
+              "concepts/authentication"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/setup",
+              "guides/configuration",
+              "guides/deployment"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth/create-account",
+              "api/auth/confirm-account",
+              "api/auth/login",
+              "api/auth/forgot-password",
+              "api/auth/reset-password",
+              "api/auth/get-user",
+              "api/auth/check-password",
+              "api/auth/update-points"
+            ]
+          },
+          {
+            "group": "Games",
+            "pages": [
+              "api/games/get-all-games"
+            ]
+          },
+          {
+            "group": "Users",
+            "pages": [
+              "api/users/get-all-users",
+              "api/users/get-by-token"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "User authentication with email confirmation",
+    "Password reset with token validation",
+    "JWT-based session management",
+    "User points and gamification system",
+    "Game catalog management",
+    "Rate limiting and security middleware",
+    "PostgreSQL database with Sequelize ORM",
+    "Email notifications for auth events"
+  ],
+  "publicApiSurface": [
+    "POST /api/auth/create-account",
+    "POST /api/auth/confirm-account",
+    "POST /api/auth/login",
+    "POST /api/auth/forgot-password",
+    "POST /api/auth/validate-token",
+    "POST /api/auth/reset-password/:token",
+    "GET /api/auth/user",
+    "POST /api/auth/check-password",
+    "PATCH /api/auth/users/points",
+    "GET /api/auth/users",
+    "POST /api/auth/users",
+    "GET /api/games"
+  ]
+}
