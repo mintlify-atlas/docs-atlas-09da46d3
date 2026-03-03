@@ -1,0 +1,438 @@
+---
+title: 'Database Design'
+description: 'PostgreSQL database schema, Sequelize models, and data relationships in Cognit Backend'
+---
+
+## Overview
+
+Cognit Backend uses **PostgreSQL** as its relational database, managed through **Sequelize ORM** with TypeScript decorators. The database stores user accounts, game content, categories, and player progress.
+
+## Database Configuration
+
+### Sequelize Setup
+
+```typescript src/config/db.ts
+import { Sequelize } from "sequelize-typescript"
+import dotenv from 'dotenv'
+dotenv.config()
+
+export const db = new Sequelize(process.env.DATABASE_URL, {
+    models: [__dirname + '/../models/**/*'],
+    logging: false
+})
+```
+
+<Info>
+  The configuration automatically loads all models from the `src/models/` directory.
+</Info>
+
+### Connection & Synchronization
+
+The database connection is established on server startup:
+
+```typescript src/server.ts
+async function connectDB() {
+    try {
+        await db.authenticate()
+        db.sync({ alter: true })
+        console.log('Database connection successfull')
+    } catch (error) {
+        console.log('Database connection failed')
+    }
+}
+connectDB()
+```
+
+<Warning>
+  **Development Mode**: Uses `sync({ alter: true })` to automatically adjust schema. For production, implement proper migration strategies.
+</Warning>
+
+## Data Models
+
+The application defines three primary models using Sequelize TypeScript decorators.
+
+### User Model
+
+<Tabs>
+  <Tab title="Sequelize Model">
+    ```typescript src/models/User.ts
+    import { Table, Column, DataType, Model, Default, Unique, AllowNull } from 'sequelize-typescript'
+
+    @Table({
+        tableName: 'users'
+    })
+    class User extends Model {
+        @AllowNull(false)
+        @Column({
+            type: DataType.STRING(80)
+        })
+        declare username: string
+
+        @Unique(true)
+        @AllowNull(false)
+        @Column({
+            type: DataType.STRING(80)
+        })
+        declare email: string
+
+        @AllowNull(false)
+        @Column({
+            type: DataType.STRING(60)
+        })
+        declare password: string
+
+        @Column({
+            type: DataType.STRING(6)
+        })
+        declare token: string
+
+        @Default(0)
+        @Column({
+            type: DataType.STRING
+        })
+        declare points: string
+
+        @Default(false)
+        @Column({
+            type: DataType.BOOLEAN
+        })
+        declare confirmed: boolean
+    }
+
+    export default User
+    ```
+  </Tab>
+  <Tab title="SQL Schema">
+    ```sql database.sql
+    CREATE TABLE users(
+        user_id SERIAL PRIMARY KEY,
+        user_status VARCHAR(255) NOT NULL,
+        user_code_validation VARCHAR(255) NOT NULL,
+        user_email VARCHAR(255) NOT NULL,
+        user_points INT NOT NULL,
+        skill_know_points INT NOT NULL,
+        skill_sust_points INT NOT NULL,
+        skill_prot_points INT NOT NULL,
+        skill_expl_points INT NOT NULL
+    )
+    ```
+  </Tab>
+</Tabs>
+
+**User Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `username` | STRING(80) | User display name |
+| `email` | STRING(80) | Unique user email (used for login) |
+| `password` | STRING(60) | Bcrypt hashed password |
+| `token` | STRING(6) | 6-digit verification/reset token |
+| `points` | STRING | Player's total game points |
+| `confirmed` | BOOLEAN | Email confirmation status (default: false) |
+
+<Note>
+  Passwords are hashed using **bcrypt** with a salt rounds of 10 before storage.
+</Note>
+
+### Games Model
+
+```typescript src/models/Games.ts
+import { Table, Column, DataType, BelongsTo, ForeignKey, Model, AllowNull } from 'sequelize-typescript'
+import GameCategory from './Category'
+
+@Table({
+    tableName: 'games'
+})
+class Games extends Model {
+    @AllowNull(false)
+    @Column({
+        type: DataType.STRING(100)
+    })
+    declare title: string
+
+    @AllowNull(false)
+    @Column({
+        type: DataType.STRING(80)
+    })
+    declare explanation: string
+
+    @AllowNull(false)
+    @Column({
+        type: DataType.STRING(9)
+    })
+    declare points_reward: string
+
+    @ForeignKey(() => GameCategory)
+    declare categoryId: number
+
+    @BelongsTo(() => GameCategory)
+    declare category: GameCategory
+}
+
+export default Games
+```
+
+**Games Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | STRING(100) | Game title |
+| `explanation` | STRING(80) | Game description/instructions |
+| `points_reward` | STRING(9) | Points awarded for completion |
+| `categoryId` | NUMBER | Foreign key to GameCategory |
+
+### Category Model
+
+```typescript src/models/Category.ts
+import { Table, Column, DataType, HasMany, Model, AllowNull } from 'sequelize-typescript'
+import Games from './Games'
+
+@Table({
+    tableName: 'gameCategory'
+})
+class GameCategory extends Model {
+    @AllowNull(false)
+    @Column({
+        type: DataType.STRING(100)
+    })
+    declare title: string
+
+    @HasMany(() => Games, {
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
+    })
+    declare Commynities: Games[]
+}
+
+export default GameCategory
+```
+
+**Category Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | STRING(100) | Category name |
+
+## Model Relationships
+
+### Entity Relationship Diagram
+
+```
+┌─────────────────┐
+│  GameCategory   │
+├─────────────────┤
+│ id (PK)         │
+│ title           │
+└────────┬────────┘
+         │
+         │ 1:N
+         │
+         ▼
+┌─────────────────┐
+│     Games       │
+├─────────────────┤
+│ id (PK)         │
+│ title           │
+│ explanation     │
+│ points_reward   │
+│ categoryId (FK) │
+└─────────────────┘
+
+┌─────────────────┐
+│      User       │
+├─────────────────┤
+│ id (PK)         │
+│ username        │
+│ email (UNIQUE)  │
+│ password        │
+│ token           │
+│ points          │
+│ confirmed       │
+└─────────────────┘
+```
+
+### Category → Games (One-to-Many)
+
+```typescript
+// In Category model
+@HasMany(() => Games, {
+    onUpdate: 'CASCADE',
+    onDelete: 'CASCADE'
+})
+declare Commynities: Games[]
+
+// In Games model
+@ForeignKey(() => GameCategory)
+declare categoryId: number
+
+@BelongsTo(() => GameCategory)
+declare category: GameCategory
+```
+
+<Accordion title="Cascade Behavior">
+  When a category is updated or deleted:
+  - **CASCADE on UPDATE**: All related games update their `categoryId`
+  - **CASCADE on DELETE**: All related games are deleted
+</Accordion>
+
+## Database Operations
+
+### Creating Records
+
+Example from user registration:
+
+```typescript src/controllers/AuthController.ts
+static createAccount = async (req: Request, res: Response) => {
+    const {email, password } = req.body
+
+    const userExists = await User.findOne({ where: {email}})
+    if(userExists) {
+        const error = new Error("There is a problem creating user")
+        res.status(409).json({error: error.message})
+        return
+    }
+
+    try {
+        const user = new User(req.body)
+        user.password = await hashPassword(password)
+        user.token = generateToken()
+        await user.save()
+
+        // Send confirmation email
+        await AuthEmail.sendConfirmationEmail({
+             username: user.username,
+             email: user.email,
+             token: user.token,
+        })
+        res.status(201).json("User created successfully")
+    } catch (error) {
+        res.status(500).json({error: "Error creating user"})
+    }
+}
+```
+
+### Querying Records
+
+<Tabs>
+  <Tab title="Find by Email">
+    ```typescript
+    const user = await User.findOne({ where: { email }})
+    ```
+  </Tab>
+  <Tab title="Find by Token">
+    ```typescript
+    const user = await User.findOne({ where: { token }})
+    ```
+  </Tab>
+  <Tab title="Find by Primary Key">
+    ```typescript
+    const user = await User.findByPk(decoded.id, {
+        attributes: ['id', 'name', 'email']
+    })
+    ```
+  </Tab>
+  <Tab title="Find All">
+    ```typescript
+    const users = await User.findAll()
+    ```
+  </Tab>
+</Tabs>
+
+### Updating Records
+
+```typescript src/controllers/AuthController.ts
+static updatePlayerPoints = async (req: Request, res: Response, next: NextFunction) => {
+    const {email, points } = req.body
+
+    const user = await User.findOne({ where: {email}})
+
+    if(!user) {
+        const error = new Error("User not valid")
+        res.status(404).json({ error: error.message})
+        return
+    }
+
+    // Assign new points
+    user.points = points
+    await user.save()
+
+    res.json("Correct points update")
+}
+```
+
+## Migration Strategy
+
+<Warning>
+  **Current Approach**: Using `db.sync({ alter: true })` for automatic schema updates.
+  
+  **Production Recommendation**: Implement Sequelize migrations for version-controlled schema changes.
+</Warning>
+
+For production deployments, consider:
+
+1. **Disable auto-sync**: Remove `db.sync({ alter: true })`
+2. **Use migrations**: Create migration files for schema changes
+3. **Version control**: Track schema changes in Git
+4. **Rollback capability**: Maintain down migrations
+
+```bash
+# Initialize Sequelize migrations
+sequelize init
+
+# Create a migration
+sequelize migration:generate --name create-users-table
+
+# Run migrations
+sequelize db:migrate
+
+# Rollback
+sequelize db:migrate:undo
+```
+
+## Database Schema (SQL)
+
+The complete SQL schema is available in `database.sql`:
+
+```sql database.sql
+CREATE DATABASE cognit;
+
+CREATE TABLE users(
+    user_id SERIAL PRIMARY KEY,
+    user_status VARCHAR(255) NOT NULL,
+    user_code_validation VARCHAR(255) NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
+    user_points INT NOT NULL,
+    skill_know_points INT NOT NULL,
+    skill_sust_points INT NOT NULL,
+    skill_prot_points INT NOT NULL,
+    skill_expl_points INT NOT NULL
+)
+
+CREATE TABLE games(
+    game_id SERIAL PRIMARY KEY,
+    game_title VARCHAR(255) NOT NULL,
+    game_category_id INT REFERENCES categories(category_id),
+    game_description VARCHAR(255) NOT NULL,
+    game_points_reward INT NOT NULL,
+    game_skill_points_reward INT NOT NULL,
+)
+
+CREATE TABLE categories(
+    category_id SERIAL PRIMARY KEY,
+    category_name VARCHAR(255) NOT NULL,
+)
+```
+
+<Info>
+  The Sequelize models take precedence over the SQL schema. The SQL file serves as a reference for the initial database structure.
+</Info>
+
+## Best Practices
+
+1. **Use Transactions**: For operations affecting multiple tables
+2. **Validate Input**: Always validate data before database operations
+3. **Handle Errors**: Implement proper error handling for database failures
+4. **Index Optimization**: Add indexes on frequently queried fields (email, token)
+5. **Connection Pooling**: Sequelize handles this automatically
+
+See the [Authentication](/concepts/authentication) guide for security best practices around user data.

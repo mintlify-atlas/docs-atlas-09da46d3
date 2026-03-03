@@ -1,0 +1,101 @@
+---
+title: "Confirm Account"
+description: "Verify user email address with confirmation token"
+---
+
+## POST /api/auth/confirm-account
+
+Confirms a user account by validating the 6-digit token sent via email during registration.
+
+### Authentication
+
+No authentication required.
+
+### Request Body
+
+<ParamField body="token" type="string" required>
+  6-digit confirmation token sent to user's email. Must be exactly 6 characters.
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "token": "123456"
+}
+```
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message confirming account activation.
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  User data object.
+  
+  <ResponseField name="user.id" type="number">
+    User's unique identifier.
+  </ResponseField>
+  
+  <ResponseField name="user.email" type="string">
+    User's email address.
+  </ResponseField>
+  
+  <ResponseField name="user.points" type="string">
+    User's current points balance.
+  </ResponseField>
+</ResponseField>
+
+#### Success Response (200 OK)
+
+```json
+{
+  "message": "Account confirmed",
+  "user": {
+    "id": 42,
+    "email": "john@example.com",
+    "points": "0"
+  }
+}
+```
+
+### Error Responses
+
+#### 401 Unauthorized - Invalid Token
+
+```json
+{
+  "error": "Token not valid"
+}
+```
+
+#### 400 Bad Request - Validation Errors
+
+```json
+{
+  "errors": [
+    {
+      "msg": "Token not valid",
+      "param": "token"
+    }
+  ]
+}
+```
+
+### cURL Example
+
+```bash
+curl -X POST https://api.example.com/api/auth/confirm-account \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "123456"
+  }'
+```
+
+### Notes
+
+- Token must be exactly 6 characters long
+- Once confirmed, the user's `confirmed` field is set to `true`
+- Confirmed accounts can log in to the system
+- Rate limiting is applied to this endpoint

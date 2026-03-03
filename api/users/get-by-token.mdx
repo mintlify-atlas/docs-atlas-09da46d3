@@ -1,0 +1,125 @@
+---
+title: "Get User By Token"
+description: "Retrieve a user by their verification token"
+---
+
+## POST /api/auth/users
+
+Validates and retrieves a user by their 6-character verification token. This endpoint is typically used during account confirmation or password reset flows.
+
+### Authentication
+
+No authentication required.
+
+### Rate Limiting
+
+This endpoint is subject to rate limiting.
+
+### Request
+
+<ParamField body="token" type="string" required>
+  6-character verification token
+  
+  **Validation rules:**
+  - Must not be empty
+  - Must be exactly 6 characters in length
+  - Both minimum and maximum length is 6
+</ParamField>
+
+### Request Body Example
+
+```json
+{
+  "token": "ABC123"
+}
+```
+
+### Response
+
+<ResponseField name="message" type="string">
+  Confirmation message
+</ResponseField>
+
+<ResponseField name="token" type="string">
+  The validated token code
+</ResponseField>
+
+### Response Example
+
+```json
+{
+  "message": "Token confirmed",
+  "token": "ABC123"
+}
+```
+
+### Status Codes
+
+<ResponseField name="200" type="Success">
+  Token validated successfully
+  
+  ```json
+  {
+    "message": "Token confirmed",
+    "token": "ABC123"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="400" type="Validation Error">
+  Invalid token format
+  
+  ```json
+  [
+    {
+      "msg": "Token not valid",
+      "param": "token",
+      "location": "body"
+    }
+  ]
+  ```
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Token not found in database
+  
+  ```json
+  {
+    "error": "Token not valid"
+  }
+  ```
+</ResponseField>
+
+### cURL Example
+
+```bash
+curl -X POST https://api.cognit.com/api/auth/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "ABC123"
+  }'
+```
+
+### Error Responses
+
+#### Validation Errors (400)
+
+The request body fails validation:
+- Token is empty
+- Token length is not exactly 6 characters
+
+#### Unauthorized (401)
+
+The token does not match any user in the database:
+```json
+{
+  "error": "Token not valid"
+}
+```
+
+### Notes
+
+- Tokens are case-sensitive
+- Tokens are typically 6 alphanumeric characters
+- This endpoint is used in conjunction with email verification and password reset flows
+- The token is returned in the response for confirmation purposes

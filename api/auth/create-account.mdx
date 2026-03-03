@@ -1,0 +1,106 @@
+---
+title: "Create Account"
+description: "Register a new user account and send confirmation email"
+---
+
+## POST /api/auth/create-account
+
+Creates a new user account and sends a confirmation email with a 6-digit token.
+
+### Authentication
+
+No authentication required.
+
+### Request Body
+
+<ParamField body="username" type="string" required>
+  User's display name. Cannot be empty.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Valid email address. Must be unique in the system.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User password. Minimum length: 8 characters.
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
+```
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message confirming user creation.
+</ResponseField>
+
+#### Success Response (201 Created)
+
+```json
+"User created successfully"
+```
+
+### Error Responses
+
+#### 409 Conflict - User Already Exists
+
+```json
+{
+  "error": "There is a problem creating user"
+}
+```
+
+#### 400 Bad Request - Validation Errors
+
+```json
+{
+  "errors": [
+    {
+      "msg": "Username can not be empty",
+      "param": "username"
+    },
+    {
+      "msg": "Email not valid",
+      "param": "email"
+    },
+    {
+      "msg": "Password min length has to be 8 characters",
+      "param": "password"
+    }
+  ]
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+  "error": "Error creating user"
+}
+```
+
+### cURL Example
+
+```bash
+curl -X POST https://api.example.com/api/auth/create-account \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "johndoe",
+    "email": "john@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+### Notes
+
+- Password is automatically hashed before storage
+- A 6-digit confirmation token is generated and sent via email
+- Account starts in unconfirmed state until token is verified
+- Rate limiting is applied to this endpoint

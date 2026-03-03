@@ -1,0 +1,121 @@
+---
+title: "Get All Users"
+description: "Retrieve a list of all registered users in the platform"
+---
+
+## GET /api/auth/users
+
+Retrieves all users from the database with their details including username, email, points, and confirmation status.
+
+### Authentication
+
+No authentication required.
+
+### Rate Limiting
+
+This endpoint is subject to rate limiting.
+
+### Request
+
+No parameters required.
+
+### Response
+
+<ResponseField name="users" type="array">
+  Array of user objects
+  
+  <Expandable title="User Object">
+    <ResponseField name="id" type="number">
+      Unique identifier for the user
+    </ResponseField>
+    
+    <ResponseField name="username" type="string">
+      User's display name (max 80 characters)
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      User's email address (unique, max 80 characters)
+    </ResponseField>
+    
+    <ResponseField name="password" type="string">
+      Hashed password (max 60 characters) - should not be exposed in production
+    </ResponseField>
+    
+    <ResponseField name="token" type="string">
+      6-character verification token (nullable)
+    </ResponseField>
+    
+    <ResponseField name="points" type="string">
+      User's accumulated points (default: "0")
+    </ResponseField>
+    
+    <ResponseField name="confirmed" type="boolean">
+      Whether the user's account has been confirmed (default: false)
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      Timestamp when the user was created
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      Timestamp when the user was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Response Example
+
+```json
+[
+  {
+    "id": 1,
+    "username": "john_doe",
+    "email": "john@example.com",
+    "password": "$2b$10$abcdefghijklmnopqrstuvwxyz123456789",
+    "token": null,
+    "points": "500",
+    "confirmed": true,
+    "createdAt": "2026-01-10T08:30:00.000Z",
+    "updatedAt": "2026-02-15T12:45:00.000Z"
+  },
+  {
+    "id": 2,
+    "username": "jane_smith",
+    "email": "jane@example.com",
+    "password": "$2b$10$zyxwvutsrqponmlkjihgfedcba987654321",
+    "token": "ABC123",
+    "points": "250",
+    "confirmed": false,
+    "createdAt": "2026-02-20T15:20:00.000Z",
+    "updatedAt": "2026-02-20T15:20:00.000Z"
+  }
+]
+```
+
+### Status Codes
+
+<ResponseField name="200" type="Success">
+  Users retrieved successfully
+</ResponseField>
+
+<ResponseField name="404" type="Error">
+  Users not found
+  
+  ```json
+  {
+    "error": "Users not foun"
+  }
+  ```
+</ResponseField>
+
+### cURL Example
+
+```bash
+curl -X GET https://api.cognit.com/api/auth/users
+```
+
+### Notes
+
+- The password field is returned as a hashed value. In a production environment, it's recommended to exclude this field from the response.
+- Users with `confirmed: false` have not yet verified their email address.
+- The `token` field is used for account verification and password reset flows.

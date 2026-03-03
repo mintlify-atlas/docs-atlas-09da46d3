@@ -1,0 +1,88 @@
+---
+title: "Get User"
+description: "Retrieve authenticated user's profile information"
+---
+
+## GET /api/auth/user
+
+Retrieves the profile information for the currently authenticated user.
+
+### Authentication
+
+**Required.** This endpoint requires authentication via the `authenticate` middleware.
+
+Include authentication token in the request headers.
+
+### Request Parameters
+
+No parameters required.
+
+### Response
+
+<ResponseField name="user" type="object">
+  Authenticated user's profile data.
+  
+  <ResponseField name="id" type="number">
+    User's unique identifier.
+  </ResponseField>
+  
+  <ResponseField name="username" type="string">
+    User's display name.
+  </ResponseField>
+  
+  <ResponseField name="email" type="string">
+    User's email address.
+  </ResponseField>
+  
+  <ResponseField name="points" type="string">
+    User's current points balance.
+  </ResponseField>
+  
+  <ResponseField name="confirmed" type="boolean">
+    Whether the user's account is confirmed.
+  </ResponseField>
+</ResponseField>
+
+#### Success Response (200 OK)
+
+```json
+{
+  "id": 42,
+  "username": "johndoe",
+  "email": "john@example.com",
+  "points": "1500",
+  "confirmed": true
+}
+```
+
+### Error Responses
+
+#### 401 Unauthorized - No Authentication Token
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+#### 401 Unauthorized - Invalid Token
+
+```json
+{
+  "error": "Invalid token"
+}
+```
+
+### cURL Example
+
+```bash
+curl -X GET https://api.example.com/api/auth/user \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
+```
+
+### Notes
+
+- Requires valid authentication token in request headers
+- Returns the user object attached to the request by the authentication middleware
+- Rate limiting is applied to this endpoint
+- Useful for verifying authentication status and retrieving current user data

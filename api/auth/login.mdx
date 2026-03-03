@@ -1,0 +1,135 @@
+---
+title: "Login"
+description: "Authenticate user and retrieve account information"
+---
+
+## POST /api/auth/login
+
+Authenticates a user with email and password credentials.
+
+### Authentication
+
+No authentication required.
+
+### Request Body
+
+<ParamField body="email" type="string" required>
+  Valid email address associated with the account.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's account password.
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
+```
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message confirming authentication.
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  Authenticated user data.
+  
+  <ResponseField name="user.id" type="number">
+    User's unique identifier.
+  </ResponseField>
+  
+  <ResponseField name="user.email" type="string">
+    User's email address.
+  </ResponseField>
+  
+  <ResponseField name="user.points" type="string">
+    User's current points balance.
+  </ResponseField>
+</ResponseField>
+
+#### Success Response (200 OK)
+
+```json
+{
+  "message": "User authenticated",
+  "user": {
+    "id": 42,
+    "email": "john@example.com",
+    "points": "1500"
+  }
+}
+```
+
+### Error Responses
+
+#### 404 Not Found - User Does Not Exist
+
+```json
+{
+  "error": "User not found"
+}
+```
+
+#### 403 Forbidden - Account Not Confirmed
+
+```json
+{
+  "error": "Account not confirmed"
+}
+```
+
+#### 401 Unauthorized - Invalid Credentials
+
+```json
+{
+  "error": "Invalid credentials"
+}
+```
+
+#### 400 Bad Request - Validation Errors
+
+```json
+{
+  "errors": [
+    {
+      "msg": "Email not valid",
+      "param": "email"
+    },
+    {
+      "msg": "password is mandatory",
+      "param": "password"
+    }
+  ]
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+  "error": "User not authenticated"
+}
+```
+
+### cURL Example
+
+```bash
+curl -X POST https://api.example.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+### Notes
+
+- Account must be confirmed before login is allowed
+- Password is validated against the hashed password in the database
+- Rate limiting is applied to this endpoint
+- Session/JWT token handling should be implemented client-side

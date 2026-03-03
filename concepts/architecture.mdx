@@ -1,0 +1,265 @@
+---
+title: 'System Architecture'
+description: 'Understanding the Cognit Backend architecture, MVC pattern, and Express.js server structure'
+---
+
+## Overview
+
+Cognit Backend is built on a modern Express.js + TypeScript stack, following the Model-View-Controller (MVC) architectural pattern. The API serves as the backend for an educational game platform, handling user authentication, game management, and player progress tracking.
+
+### Technology Stack
+
+- **Runtime**: Node.js with Express.js
+- **Language**: TypeScript
+- **Database**: PostgreSQL with Sequelize ORM
+- **Authentication**: JWT (JSON Web Tokens)
+- **Security**: Helmet, CORS, Rate Limiting
+
+## Server Structure
+
+### Application Initialization
+
+The server is initialized in two main files:
+
+<Tabs>
+  <Tab title="server.ts">
+    ```typescript src/server.ts
+    import express from 'express'
+    import colors from 'colors'
+    import morgan from 'morgan'
+    import { db } from "./config/db"
+    import usersRouter from './routes/authRouter'
+    import gamesRouter from './routes/gamesRouter'
+    import helmet from "helmet"
+    import cors from 'cors'
+
+    async function connectDB() {
+        try {
+            await db.authenticate()
+            db.sync({ alter: true })
+            console.log(colors.blue.bold('Database connection successfull'))
+        } catch (error) {
+            console.log(colors.red('Database connection failed'))
+        }
+    }
+    connectDB()
+
+    const app = express()
+
+    // Basic configs
+    app.use(helmet())
+    app.use(cors({
+        origin: ['https://cognit.website', 'http://localhost:5175'],
+        credentials: true,
+    }))
+    app.use(morgan('dev'))
+    app.use(express.json())
+
+    // routing
+    app.use('/api/auth', usersRouter)
+    app.use('/api/games', gamesRouter)
+
+    export default app
+    ```
+  </Tab>
+  <Tab title="index.ts">
+    ```typescript src/index.ts
+    import colors from 'colors'
+    import server from './server'
+
+    const port = process.env.PORT || 3005
+
+    server.listen(port, () => {
+        console.log(colors.cyan.bold(`REST Api on port ${port}`))
+    })
+    ```
+  </Tab>
+</Tabs>
+
+## MVC Pattern
+
+The application follows a clear separation of concerns using the MVC pattern:
+
+### Models
+
+Located in `src/models/`, models define the data structure using Sequelize decorators:
+
+- **User.ts** - User accounts and authentication
+- **Games.ts** - Game content and metadata
+- **Category.ts** - Game categorization
+
+### Controllers
+
+Located in `src/controllers/`, controllers handle business logic:
+
+- **AuthController.ts** - User authentication, registration, password reset
+- **GamesController.ts** - Game data management
+
+### Routes
+
+Located in `src/routes/`, routes define API endpoints:
+
+- **authRouter.ts** - Authentication endpoints (`/api/auth/*`)
+- **gamesRouter.ts** - Game endpoints (`/api/games/*`)
+
+## Middleware Stack
+
+### Security Middleware
+
+<AccordionGroup>
+  <Accordion title="Helmet - Security Headers">
+    ```typescript
+    app.use(helmet())
+    ```
+    Helmet helps secure Express apps by setting various HTTP headers to prevent common vulnerabilities.
+  </Accordion>
+
+  <Accordion title="CORS - Cross-Origin Resource Sharing">
+    ```typescript
+    app.use(cors({
+        origin: ['https://cognit.website', 'http://localhost:5175'],
+        credentials: true,
+    }))
+    ```
+    Configured to allow requests from the production frontend and local development environment.
+  </Accordion>
+
+  <Accordion title="Rate Limiting">
+    ```typescript src/config/limiter.ts
+    import { rateLimit } from 'express-rate-limit'
+
+    export const limiter = rateLimit({
+        windowMs: 60 * 1000,  // 1 minute
+        limit: 5,              // 5 requests per window
+        message: {"error": "Max limit requests"}
+    })
+    ```
+    Applied to authentication routes to prevent brute force attacks.
+  </Accordion>
+
+  <Accordion title="Authentication Middleware">
+    ```typescript src/middleware/auth.ts
+    export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+        const bearer = req.headers.authorization
+
+        if (!bearer) {
+            const error = new Error("Not authorized")
+            res.status(401).json({ error: error.message })
+            return
+        }
+
+        const [text, token] = bearer.split(' ')
+        if (!token) {
+            const error = new Error("Token not valid")
+            res.status(401).json({ error: error.message })
+            return
+        }
+
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET)
+            if (typeof decoded === 'object' && decoded.id) {
+                req.user = await User.findByPk(decoded.id, {
+                    attributes: ['id', 'name', 'email']
+                })
+                next()
+            }
+        } catch (error) {
+            res.status(500).json({ error: "token not valid" })
+        }
+    }
+    ```
+    Validates JWT tokens and attaches user information to requests.
+  </Accordion>
+</AccordionGroup>
+
+### Logging & Parsing
+
+```typescript
+app.use(morgan('dev'))      // HTTP request logging
+app.use(express.json())     // JSON body parsing
+```
+
+## Directory Structure
+
+```
+src/
+├── config/
+│   ├── db.ts              # Database configuration
+│   ├── limiter.ts         # Rate limiting setup
+│   └── nodemailer.ts      # Email service config
+├── controllers/
+│   ├── AuthController.ts  # Authentication logic
+│   └── GamesController.ts # Game management logic
+├── emails/
+│   └── AuthEmail.ts       # Email templates
+├── middleware/
+│   ├── auth.ts            # JWT authentication
+│   └── validation.ts      # Input validation
+├── models/
+│   ├── User.ts            # User model
+│   ├── Games.ts           # Games model
+│   └── Category.ts        # Category model
+├── routes/
+│   ├── authRouter.ts      # Auth endpoints
+│   └── gamesRouter.ts     # Game endpoints
+├── utils/
+│   ├── auth.ts            # Password hashing
+│   ├── jwt.ts             # JWT generation
+│   └── genToken.ts        # Token utilities
+├── index.ts               # Server entry point
+└── server.ts              # Express app setup
+```
+
+<Note>
+  The project uses **TypeScript** throughout, providing type safety and better developer experience.
+</Note>
+
+## API Routes
+
+### Authentication Routes
+
+All authentication routes are prefixed with `/api/auth`:
+
+```typescript
+router.post('/create-account')      // User registration
+router.post('/confirm-account')     // Email confirmation
+router.post('/login')               // User login
+router.post('/forgot-password')     // Password reset request
+router.post('/reset-password/:token') // Password reset
+router.get('/user')                 // Get authenticated user
+```
+
+### Game Routes
+
+All game routes are prefixed with `/api/games`:
+
+```typescript
+router.get('/')  // Get all games
+```
+
+<Info>
+  All authentication routes are protected with rate limiting (5 requests per minute) to prevent abuse.
+</Info>
+
+## Database Synchronization
+
+The application uses Sequelize's `sync` method with `alter: true` to automatically update the database schema:
+
+```typescript
+db.sync({ alter: true })
+```
+
+<Warning>
+  The `alter: true` option is suitable for development but should be replaced with proper migrations in production.
+</Warning>
+
+## Environment Configuration
+
+The application relies on environment variables:
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `JWT_SECRET` - Secret for JWT token signing
+- `PORT` - Server port (defaults to 3005)
+- `FRONTEND_URL` - Frontend URL for email links
+
+See the [Configuration](/guides/configuration) guide for complete details.

@@ -1,0 +1,440 @@
+---
+title: 'Configuration Guide'
+description: 'Configure the Cognit Backend API for your environment'
+---
+
+## Environment Variables Reference
+
+All configuration is managed through environment variables defined in a `.env` file.
+
+### Server Configuration
+
+#### PORT
+
+The port number where the Express server will listen.
+
+```bash
+PORT=3005
+```
+
+- **Type**: Number
+- **Default**: 3005 (src/index.ts:4)
+- **Required**: No
+
+### Database Configuration
+
+#### DATABASE_URL
+
+PostgreSQL connection string used by Sequelize ORM.
+
+```bash
+DATABASE_URL=postgresql://username:password@host:port/database
+```
+
+- **Type**: String (PostgreSQL connection URI)
+- **Required**: Yes
+- **Used in**: src/config/db.ts:5
+- **Format**: `postgresql://[user]:[password]@[host]:[port]/[database]`
+
+<CodeGroup>
+```bash Local Development
+DATABASE_URL=postgresql://cognit_user:password@localhost:5432/cognit_dev
+```
+
+```bash Production
+DATABASE_URL=postgresql://user:pass@production-host.com:5432/cognit_prod
+```
+
+```bash Docker
+DATABASE_URL=postgresql://postgres:password@db:5432/cognit
+```
+</CodeGroup>
+
+<Warning>
+Never commit your `DATABASE_URL` to version control. This contains sensitive credentials.
+</Warning>
+
+### JWT Authentication
+
+#### JWT_SECRET
+
+Secret key used to sign and verify JSON Web Tokens for user authentication.
+
+```bash
+JWT_SECRET=your-super-secret-key-minimum-32-characters-recommended
+```
+
+- **Type**: String
+- **Required**: Yes
+- **Used in**: 
+  - src/utils/jwt.ts:4 - Token generation
+  - src/middleware/auth.ts:31 - Token verification
+- **Token Expiration**: 30 days (src/utils/jwt.ts:5)
+
+<Tip>
+Generate a secure random string for production:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+</Tip>
+
+### Email Configuration (Nodemailer)
+
+The application uses Nodemailer for sending emails (account confirmation, password reset, etc.).
+
+#### EMAIL_HOST
+
+SMTP server hostname.
+
+```bash
+EMAIL_HOST=smtp.gmail.com
+```
+
+- **Type**: String
+- **Required**: Yes
+- **Used in**: src/config/nodemailer.ts:16
+
+#### EMAIL_PORT
+
+SMTP server port number.
+
+```bash
+EMAIL_PORT=587
+```
+
+- **Type**: Number
+- **Required**: Yes
+- **Used in**: src/config/nodemailer.ts:17
+- **Common values**:
+  - `587` - TLS/STARTTLS (recommended)
+  - `465` - SSL
+  - `25` - Unencrypted (not recommended)
+
+#### EMAIL_USER
+
+SMTP authentication username (usually your email address).
+
+```bash
+EMAIL_USER=your-email@gmail.com
+```
+
+- **Type**: String
+- **Required**: Yes
+- **Used in**: src/config/nodemailer.ts:19
+
+#### EMAIL_PASS
+
+SMTP authentication password or app-specific password.
+
+```bash
+EMAIL_PASS=your-app-specific-password
+```
+
+- **Type**: String
+- **Required**: Yes
+- **Used in**: src/config/nodemailer.ts:20
+
+<Note>
+For Gmail, you must use an [App Password](https://support.google.com/accounts/answer/185833), not your regular password.
+</Note>
+
+<CodeGroup>
+```bash Gmail
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=app-specific-password
+```
+
+```bash SendGrid
+EMAIL_HOST=smtp.sendgrid.net
+EMAIL_PORT=587
+EMAIL_USER=apikey
+EMAIL_PASS=your-sendgrid-api-key
+```
+
+```bash AWS SES
+EMAIL_HOST=email-smtp.us-east-1.amazonaws.com
+EMAIL_PORT=587
+EMAIL_USER=your-ses-smtp-username
+EMAIL_PASS=your-ses-smtp-password
+```
+</CodeGroup>
+
+#### FRONTEND_URL
+
+The URL of your frontend application, used in email links and CORS configuration.
+
+```bash
+FRONTEND_URL=http://localhost:5175
+```
+
+- **Type**: String (URL)
+- **Required**: Yes
+- **Used in**: Email templates for confirmation and password reset links
+
+## CORS Configuration
+
+Cross-Origin Resource Sharing (CORS) is configured in `src/server.ts`.
+
+### Current Configuration
+
+```typescript
+app.use(cors({
+    origin: ['https://cognit.website', 'http://localhost:5175'],
+    credentials: true,
+}));
+```
+
+**Source**: src/server.ts:27-30
+
+### Configuration Options
+
+| Option | Value | Description |
+|--------|-------|-------------|
+| `origin` | Array of URLs | Allowed origins for cross-origin requests |
+| `credentials` | `true` | Allows cookies and authentication headers |
+
+### Customizing CORS
+
+To allow additional origins, modify the `origin` array:
+
+```typescript
+app.use(cors({
+    origin: [
+        'https://cognit.website',
+        'https://app.cognit.website',
+        'http://localhost:5175',
+        'http://localhost:3000'
+    ],
+    credentials: true,
+}));
+```
+
+<Warning>
+Never use `origin: '*'` with `credentials: true` - browsers will reject the requests for security reasons.
+</Warning>
+
+### Dynamic CORS (Environment-based)
+
+For better flexibility, use environment variables:
+
+```typescript
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? [process.env.FRONTEND_URL, 'https://cognit.website']
+  : ['http://localhost:5175'];
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+}));
+```
+
+## Rate Limiting Configuration
+
+Rate limiting prevents abuse by limiting the number of requests from a single IP.
+
+### Current Configuration
+
+```typescript
+import { rateLimit } from 'express-rate-limit'
+
+export const limiter = rateLimit({
+    windowMs: 60 * 1000,      // 1 minute
+    limit: 5,                  // 5 requests per window
+    message: {"error": "Max limit requests"}
+})
+```
+
+**Source**: src/config/limiter.ts:1-7
+
+### Configuration Options
+
+| Option | Value | Description |
+|--------|-------|-------------|
+| `windowMs` | `60000` (1 minute) | Time window for rate limiting |
+| `limit` | `5` | Maximum requests per window |
+| `message` | Custom JSON | Response when limit exceeded |
+
+### Where It's Applied
+
+The rate limiter is currently applied to all authentication routes:
+
+```typescript
+router.use(limiter)  // src/routes/authRouter.ts:10
+```
+
+This means all `/api/auth/*` endpoints are limited to 5 requests per minute.
+
+### Customizing Rate Limits
+
+<CodeGroup>
+```typescript Stricter Limits
+export const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,  // 15 minutes
+    limit: 100,                 // 100 requests per 15 min
+    message: {"error": "Too many requests, please try again later"}
+})
+```
+
+```typescript Per-Endpoint Limits
+// Stricter limit for login
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    message: {"error": "Too many login attempts"}
+});
+
+// More relaxed for general endpoints
+const generalLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 100
+});
+
+router.post('/login', loginLimiter, AuthController.login);
+router.get('/users', generalLimiter, AuthController.getAllUsers);
+```
+
+```typescript Environment-based
+export const limiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: process.env.NODE_ENV === 'production' ? 5 : 100,
+    message: {"error": "Max limit requests"}
+})
+```
+</CodeGroup>
+
+<Tip>
+Consider different rate limits for different endpoint types:
+- **Authentication** (login, register): Strict (5-10 req/15min)
+- **Read operations**: Moderate (100 req/15min)
+- **Write operations**: Moderate (50 req/15min)
+</Tip>
+
+## Database Connection Configuration
+
+Sequelize ORM manages the database connection.
+
+### Current Configuration
+
+```typescript
+import { Sequelize } from "sequelize-typescript";
+import dotenv from 'dotenv'
+dotenv.config()
+
+export const db = new Sequelize(process.env.DATABASE_URL, {
+    models: [__dirname + '/../models/**/*'],
+    logging: false
+})
+```
+
+**Source**: src/config/db.ts:1-8
+
+### Configuration Options
+
+| Option | Value | Description |
+|--------|-------|-------------|
+| Connection String | `process.env.DATABASE_URL` | PostgreSQL connection URI |
+| `models` | `[__dirname + '/../models/**/*']` | Path to model files |
+| `logging` | `false` | Disable SQL query logging |
+
+### Enable SQL Logging (Development)
+
+For debugging, enable SQL query logging:
+
+```typescript
+export const db = new Sequelize(process.env.DATABASE_URL, {
+    models: [__dirname + '/../models/**/*'],
+    logging: process.env.NODE_ENV === 'development' ? console.log : false
+})
+```
+
+### Connection Pool Configuration
+
+For production, configure connection pooling:
+
+```typescript
+export const db = new Sequelize(process.env.DATABASE_URL, {
+    models: [__dirname + '/../models/**/*'],
+    logging: false,
+    pool: {
+        max: 10,        // Maximum connections
+        min: 2,         // Minimum connections
+        acquire: 30000, // Max time to get connection (ms)
+        idle: 10000     // Max idle time before release (ms)
+    }
+})
+```
+
+## Security Configuration
+
+### Helmet (Security Headers)
+
+Helmet sets various HTTP headers for security.
+
+```typescript
+app.use(helmet());
+```
+
+**Source**: src/server.ts:26
+
+Helmet automatically enables:
+- `Content-Security-Policy`
+- `X-DNS-Prefetch-Control`
+- `X-Frame-Options`
+- `X-Content-Type-Options`
+- And more...
+
+### Authentication Middleware
+
+JWT authentication is handled by the `authenticate` middleware:
+
+```typescript
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+    const bearer = req.headers.authorization
+    // Validates Bearer token format
+    // Verifies JWT with JWT_SECRET
+    // Attaches user to request object
+}
+```
+
+**Source**: src/middleware/auth.ts:14-42
+
+Protected routes use this middleware:
+```typescript
+router.get("/user", authenticate, AuthController.getUserAuthenticated)
+```
+
+## Complete Configuration Example
+
+```bash
+# Server
+PORT=3005
+NODE_ENV=development
+
+# Database
+DATABASE_URL=postgresql://cognit_user:secure_password@localhost:5432/cognit_dev
+
+# Authentication
+JWT_SECRET=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
+
+# Email
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=cognit@gmail.com
+EMAIL_PASS=app-specific-password-here
+
+# Frontend
+FRONTEND_URL=http://localhost:5175
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deployment" icon="rocket" href="/guides/deployment">
+    Learn how to deploy to production
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/auth/create-account">
+    Explore API endpoints
+  </Card>
+</CardGroup>

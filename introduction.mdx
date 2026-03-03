@@ -1,0 +1,77 @@
+---
+title: Introduction
+description: Welcome to Cognit Backend - A secure REST API for educational gaming platforms
+---
+
+# Welcome to Cognit Backend
+
+Cognit Backend is a robust REST API built with Express.js, TypeScript, and PostgreSQL, designed to power educational gaming platforms that promote positive interactions and environmental knowledge.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Authentication & Authorization" icon="lock">
+    Complete user authentication system with JWT tokens, email verification, password reset, and secure session management
+  </Card>
+  
+  <Card title="Gamification System" icon="trophy">
+    Points-based reward system with user progression tracking, game completion rewards, and leaderboard capabilities
+  </Card>
+  
+  <Card title="Games Management" icon="gamepad">
+    Comprehensive API for managing educational games, categories, and user progress with full CRUD operations
+  </Card>
+  
+  <Card title="Security & Rate Limiting" icon="shield">
+    Built-in security with Helmet.js, CORS configuration, rate limiting (5 requests/minute), and input validation
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+Cognit Backend leverages modern technologies to ensure reliability and performance:
+
+- **Express.js** - Fast, unopinionated web framework
+- **TypeScript** - Type-safe development experience
+- **PostgreSQL** - Robust relational database
+- **Sequelize-TypeScript** - Type-safe ORM with decorators
+- **JWT** - Secure token-based authentication
+- **Bcrypt** - Password hashing and encryption
+- **Express Validator** - Request validation middleware
+- **Nodemailer** - Email delivery for account verification
+
+## Quick Links
+
+<CardGroup cols={3}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get up and running in minutes
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/auth/create-account">
+    Explore all available endpoints
+  </Card>
+  
+  <Card title="Guides" icon="book" href="/guides/setup">
+    Learn best practices and patterns
+  </Card>
+</CardGroup>
+
+## API Overview
+
+The Cognit Backend API is organized around REST principles and returns JSON responses. The API supports:
+
+- **Authentication endpoints** (`/api/auth/*`) - User registration, login, password management
+- **Games endpoints** (`/api/games/*`) - Game data retrieval and management
+- **User management** - Profile updates, points tracking, and user queries
+
+## Getting Help
+
+If you need assistance or have questions:
+
+- Review the [Quickstart Guide](/quickstart) for setup instructions
+- Check the [API Reference](/api/auth/create-account) for endpoint details
+- Explore code examples in the [Guides](/guides/setup) section
+
+<Note>
+  The API includes rate limiting of 5 requests per minute on authentication endpoints to prevent abuse. Plan your integration accordingly.
+</Note>

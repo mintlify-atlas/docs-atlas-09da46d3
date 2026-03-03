@@ -1,0 +1,111 @@
+---
+title: "Get All Games"
+description: "Retrieve a list of all games available in the platform"
+---
+
+## GET /api/games
+
+Retrieves all games from the database with their details including title, explanation, points reward, and category information.
+
+### Authentication
+
+No authentication required.
+
+### Request
+
+No parameters required.
+
+### Response
+
+<ResponseField name="games" type="array">
+  Array of game objects
+  
+  <Expandable title="Game Object">
+    <ResponseField name="id" type="number">
+      Unique identifier for the game
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Game title (max 100 characters)
+    </ResponseField>
+    
+    <ResponseField name="explanation" type="string">
+      Game description or instructions (max 80 characters)
+    </ResponseField>
+    
+    <ResponseField name="points_reward" type="string">
+      Points awarded for completing the game (max 9 characters)
+    </ResponseField>
+    
+    <ResponseField name="categoryId" type="number">
+      Foreign key reference to the game category
+    </ResponseField>
+    
+    <ResponseField name="category" type="object">
+      Associated category object
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      Timestamp when the game was created
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      Timestamp when the game was last updated
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Response Example
+
+```json
+[
+  {
+    "id": 1,
+    "title": "Math Quiz Challenge",
+    "explanation": "Solve mathematical problems to earn points",
+    "points_reward": "100",
+    "categoryId": 1,
+    "category": {
+      "id": 1,
+      "name": "Mathematics"
+    },
+    "createdAt": "2026-01-15T10:30:00.000Z",
+    "updatedAt": "2026-01-15T10:30:00.000Z"
+  },
+  {
+    "id": 2,
+    "title": "Science Trivia",
+    "explanation": "Test your science knowledge",
+    "points_reward": "150",
+    "categoryId": 2,
+    "category": {
+      "id": 2,
+      "name": "Science"
+    },
+    "createdAt": "2026-01-16T14:20:00.000Z",
+    "updatedAt": "2026-01-16T14:20:00.000Z"
+  }
+]
+```
+
+### Status Codes
+
+<ResponseField name="200" type="Success">
+  Games retrieved successfully
+</ResponseField>
+
+<ResponseField name="404" type="Error">
+  Games not found
+  
+  ```json
+  {
+    "error": "Games not found"
+  }
+  ```
+</ResponseField>
+
+### cURL Example
+
+```bash
+curl -X GET https://api.cognit.com/api/games
+```

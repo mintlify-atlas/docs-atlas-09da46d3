@@ -1,0 +1,72 @@
+---
+title: "Update Points"
+description: "Update a player's points balance"
+---
+
+## PATCH /api/auth/users/points
+
+Updates the points balance for a specific user identified by email.
+
+### Authentication
+
+No authentication required.
+
+### Request Body
+
+<ParamField body="email" type="string" required>
+  Email address of the user whose points should be updated.
+</ParamField>
+
+<ParamField body="points" type="string" required>
+  New points value to set for the user.
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "email": "john@example.com",
+  "points": "2500"
+}
+```
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success message confirming points update.
+</ResponseField>
+
+#### Success Response (200 OK)
+
+```json
+"Correct points update"
+```
+
+### Error Responses
+
+#### 404 Not Found - User Does Not Exist
+
+```json
+{
+  "error": "User not valid"
+}
+```
+
+### cURL Example
+
+```bash
+curl -X PATCH https://api.example.com/api/auth/users/points \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "points": "2500"
+  }'
+```
+
+### Notes
+
+- Points value is stored as a string in the database
+- This endpoint does not add to existing points; it sets the absolute value
+- No validation is currently applied to the request body
+- Rate limiting is applied to this endpoint
+- Consider adding authentication/authorization for production use
